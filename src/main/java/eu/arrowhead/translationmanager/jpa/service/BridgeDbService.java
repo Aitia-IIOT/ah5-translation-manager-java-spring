@@ -342,6 +342,31 @@ public class BridgeDbService {
 	}
 
 	//-------------------------------------------------------------------------------------------------
+	public void checkBridgeOwnership(final UUID bridgeId, final String createdByRequirement) {
+		logger.debug("checkBridgeOwnership started...");
+		Assert.notNull(bridgeId, "bridgeId is null");
+		Assert.isTrue(!Utilities.isEmpty(createdByRequirement), "createdByRequirement is missing");
+
+		try {
+			final Optional<BridgeHeader> headerOpt = headerRepository.findByUuid(bridgeId.toString());
+			if (headerOpt.isEmpty()) {
+				throw new InvalidParameterException("Invalid bridge identifier: " + bridgeId.toString());
+			}
+
+			final BridgeHeader header = headerOpt.get();
+			if (!createdByRequirement.equals(header.getCreatedBy())) {
+				throw new ForbiddenException("No permission to handle bridge: " + bridgeId.toString());
+			}
+		} catch (final InvalidParameterException | ForbiddenException ex) {
+			throw ex;
+		} catch (final Exception ex) {
+			logger.error(ex.getMessage());
+			logger.debug(ex);
+			throw new InternalServerError("Database operation error");
+		}
+	}
+
+	//-------------------------------------------------------------------------------------------------
 	public Page<BridgeDetails> getBridgeDetailsPage(final NormalizedTranslationQueryRequestDTO dto) {
 		logger.debug("getBridgeDetailsPage started...");
 		Assert.notNull(dto, "dto is missing");

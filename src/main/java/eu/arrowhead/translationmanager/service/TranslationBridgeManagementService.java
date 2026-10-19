@@ -91,7 +91,7 @@ public class TranslationBridgeManagementService {
 
 		final Pair<UUID, String> normalized = validator.validateAndNormalizeNegotiationMgmtRequest(dto, origin);
 
-		return engine.doNegotiation(normalized.getFirst(), normalized.getSecond(), origin);
+		return engine.doNegotiation(null, normalized.getFirst(), normalized.getSecond(), origin);
 	}
 
 	//-------------------------------------------------------------------------------------------------

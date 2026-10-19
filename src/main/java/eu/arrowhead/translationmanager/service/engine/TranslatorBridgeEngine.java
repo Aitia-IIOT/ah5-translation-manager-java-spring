@@ -188,7 +188,7 @@ public class TranslatorBridgeEngine {
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	public TranslationNegotiationResponseDTO doNegotiation(final UUID bridgeId, final String targetInstanceId, final String origin) {
+	public TranslationNegotiationResponseDTO doNegotiation(final String requester, final UUID bridgeId, final String targetInstanceId, final String origin) {
 		logger.debug("doNegotiation started...");
 		Assert.notNull(bridgeId, "bridgeId is null");
 		Assert.isTrue(!Utilities.isEmpty(targetInstanceId), "targetInstanceId is empty");
@@ -196,6 +196,11 @@ public class TranslatorBridgeEngine {
 
 		boolean storeException = false;
 		try {
+			if (!Utilities.isEmpty(requester)) {
+				// check discovery ownership
+				dbService.checkBridgeOwnership(bridgeId, requester);
+			}
+
 			final Pair<TranslationDiscoveryModel, BridgeDetails> bridgePair = dbService.selectBridgeFromDiscoveries(bridgeId, targetInstanceId);
 			storeException = true;
 			final TranslationDiscoveryModel model = bridgePair.getFirst();
@@ -275,6 +280,9 @@ public class TranslatorBridgeEngine {
 
 			// error in bridge initialization
 			throw bridgeResult.getSecond().get();
+		} catch (final ForbiddenException ex) {
+			// storeException is false at this point
+			throw new ForbiddenException(ex.getMessage(), origin);
 		} catch (final InvalidParameterException ex) {
 			if (storeException) {
 				dbService.storeBridgeProblem(bridgeId, ex.getMessage());

@@ -205,15 +205,17 @@ public class TranslationBridgeServiceTest {
 				null);
 
 		when(validator.validateAndNormalizeNegotiationRequest(dto, "origin")).thenReturn(normalized);
-		when(engine.doNegotiation(uuid, "TestProvider|testService|1.0.0", "origin")).thenReturn(response);
+		when(validator.validateAndNormalizeRequester("Requester", "origin")).thenReturn("Requester");
+		when(engine.doNegotiation("Requester", uuid, "TestProvider|testService|1.0.0", "origin")).thenReturn(response);
 
 		final TranslationNegotiationResponseDTO result = service.negotiationOperation("Requester", dto, "origin");
 
 		assertEquals(response, result);
 
 		verify(validator).validateAndNormalizeNegotiationRequest(dto, "origin");
+		verify(validator).validateAndNormalizeRequester("Requester", "origin");
 		verify(validator, never()).validateAndNormalizeDiscoveryRequest(eq("Requester"), any(TranslationDiscoveryRequestDTO.class), eq("origin"));
-		verify(engine).doNegotiation(uuid, "TestProvider|testService|1.0.0", "origin");
+		verify(engine).doNegotiation("Requester", uuid, "TestProvider|testService|1.0.0", "origin");
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -276,19 +278,19 @@ public class TranslationBridgeServiceTest {
 		when(sysInfo.isBlacklistEnabled()).thenReturn(false);
 		when(sysInfo.isAuthorizationEnabled()).thenReturn(false);
 		when(engine.doDiscovery(normalizedDR, discoveryFlags, "origin")).thenReturn(discoveryResponse);
-		when(engine.doNegotiation(UUID.fromString("fcd92344-e643-4c3f-9dc1-9f5cdff6262a"), "TestProvider|testService|1.0.0", "origin")).thenReturn(response);
+		when(engine.doNegotiation("Requester", UUID.fromString("fcd92344-e643-4c3f-9dc1-9f5cdff6262a"), "TestProvider|testService|1.0.0", "origin")).thenReturn(response);
 
 		final TranslationNegotiationResponseDTO result = service.negotiationOperation("Requester", dto, "origin");
 
 		assertEquals(response, result);
 
 		verify(validator).validateAndNormalizeNegotiationRequest(dto, "origin");
-		verify(validator).validateAndNormalizeRequester("Requester", "origin");
+		verify(validator, times(2)).validateAndNormalizeRequester("Requester", "origin");
 		verify(validator).validateAndNormalizeDiscoveryRequest("Requester", discoveryRequest, "origin");
 		verify(sysInfo, times(2)).isBlacklistEnabled();
 		verify(sysInfo, times(2)).isAuthorizationEnabled();
 		verify(engine).doDiscovery(normalizedDR, discoveryFlags, "origin");
-		verify(engine).doNegotiation(UUID.fromString("fcd92344-e643-4c3f-9dc1-9f5cdff6262a"), "TestProvider|testService|1.0.0", "origin");
+		verify(engine).doNegotiation("Requester", UUID.fromString("fcd92344-e643-4c3f-9dc1-9f5cdff6262a"), "TestProvider|testService|1.0.0", "origin");
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -354,7 +356,7 @@ public class TranslationBridgeServiceTest {
 		assertNull(result.bridgeInterface());
 
 		verify(validator).validateAndNormalizeNegotiationRequest(dto, "origin");
-		verify(validator).validateAndNormalizeRequester("Requester", "origin");
+		verify(validator, times(2)).validateAndNormalizeRequester("Requester", "origin");
 		verify(validator).validateAndNormalizeDiscoveryRequest("Requester", discoveryRequest, "origin");
 		verify(sysInfo, times(2)).isBlacklistEnabled();
 		verify(sysInfo, times(2)).isAuthorizationEnabled();

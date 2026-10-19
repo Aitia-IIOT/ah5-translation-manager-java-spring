@@ -413,14 +413,14 @@ public class TranslationBridgeManagementServiceTest {
 		when(validator.validateAndNormalizeNegotiationMgmtRequest(dto, "origin")).thenReturn(Pair.of(
 				uuid,
 				"TestProvider|testService|1.0.0"));
-		when(engine.doNegotiation(uuid, "TestProvider|testService|1.0.0", "origin")).thenReturn(response);
+		when(engine.doNegotiation(null, uuid, "TestProvider|testService|1.0.0", "origin")).thenReturn(response);
 
 		final TranslationNegotiationResponseDTO result = service.negotiationOperation(dto, "origin");
 
 		assertEquals(response, result);
 
 		verify(validator).validateAndNormalizeNegotiationMgmtRequest(dto, "origin");
-		verify(engine).doNegotiation(uuid, "TestProvider|testService|1.0.0", "origin");
+		verify(engine).doNegotiation(null, uuid, "TestProvider|testService|1.0.0", "origin");
 	}
 
 	//-------------------------------------------------------------------------------------------------

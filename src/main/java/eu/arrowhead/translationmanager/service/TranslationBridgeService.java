@@ -80,6 +80,7 @@ public class TranslationBridgeService {
 		logger.debug("negotiationOperation started...");
 		Assert.isTrue(!Utilities.isEmpty(origin), "origin is empty");
 
+		final String normalizedRequester = validator.validateAndNormalizeRequester(requester, origin);
 		NormalizedTranslationNegotiationRequestDTO normalized = validator.validateAndNormalizeNegotiationRequest(dto, origin);
 
 		if (normalized.bridgeId() == null) {
@@ -109,7 +110,7 @@ public class TranslationBridgeService {
 					normalized.outputDataModelId());
 		}
 
-		return engine.doNegotiation(normalized.bridgeId(), normalized.target().instanceId(), origin);
+		return engine.doNegotiation(normalizedRequester, normalized.bridgeId(), normalized.target().instanceId(), origin);
 	}
 
 	//-------------------------------------------------------------------------------------------------

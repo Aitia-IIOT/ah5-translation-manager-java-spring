@@ -2052,4 +2052,108 @@ public class BridgeDbServiceTest {
 		verify(discoveryRepository).delete(discovery);
 		verify(discoveryRepository).flush();
 	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipBridgeIdNull() {
+		final Throwable ex = assertThrows(
+				IllegalArgumentException.class,
+				() -> dbService.checkBridgeOwnership(null, null));
+
+		assertEquals("bridgeId is null", ex.getMessage());
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipCreatedByRequirementNull() {
+		final String bridgeId = "42ab0775-26cc-49aa-87a4-2313f9d9975b";
+		final UUID uuid = UUID.fromString(bridgeId);
+
+		final Throwable ex = assertThrows(
+				IllegalArgumentException.class,
+				() -> dbService.checkBridgeOwnership(uuid, null));
+
+		assertEquals("createdByRequirement is missing", ex.getMessage());
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipCreatedByRequirementEmpty() {
+		final String bridgeId = "42ab0775-26cc-49aa-87a4-2313f9d9975b";
+		final UUID uuid = UUID.fromString(bridgeId);
+
+		final Throwable ex = assertThrows(
+				IllegalArgumentException.class,
+				() -> dbService.checkBridgeOwnership(uuid, " "));
+
+		assertEquals("createdByRequirement is missing", ex.getMessage());
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipDbException() {
+		final String bridgeId = "42ab0775-26cc-49aa-87a4-2313f9d9975b";
+		final UUID uuid = UUID.fromString(bridgeId);
+
+		when(headerRepository.findByUuid(bridgeId)).thenThrow(RuntimeException.class);
+
+		final Throwable ex = assertThrows(
+				InternalServerError.class,
+				() -> dbService.checkBridgeOwnership(uuid, "Somebody"));
+
+		assertEquals("Database operation error", ex.getMessage());
+
+		verify(headerRepository).findByUuid(bridgeId);
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipBridgeNotFound() {
+		final String bridgeId = "42ab0775-26cc-49aa-87a4-2313f9d9975b";
+		final UUID uuid = UUID.fromString(bridgeId);
+
+		when(headerRepository.findByUuid(bridgeId)).thenReturn(Optional.empty());
+
+		final Throwable ex = assertThrows(
+				InvalidParameterException.class,
+				() -> dbService.checkBridgeOwnership(uuid, "Somebody"));
+
+		assertEquals("Invalid bridge identifier: " + bridgeId, ex.getMessage());
+
+		verify(headerRepository).findByUuid(bridgeId);
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipNoPermission() {
+		final String bridgeId = "42ab0775-26cc-49aa-87a4-2313f9d9975b";
+		final UUID uuid = UUID.fromString(bridgeId);
+		final BridgeHeader header = new BridgeHeader(uuid, "Creator");
+		header.setId(1L);
+
+		when(headerRepository.findByUuid(bridgeId)).thenReturn(Optional.of(header));
+
+		final Throwable ex = assertThrows(
+				ForbiddenException.class,
+				() -> dbService.checkBridgeOwnership(uuid, "Somebody"));
+
+		assertEquals("No permission to handle bridge: " + bridgeId, ex.getMessage());
+
+		verify(headerRepository).findByUuid(bridgeId);
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testCheckBridgeOwnershipHasPermission() {
+		final String bridgeId = "42ab0775-26cc-49aa-87a4-2313f9d9975b";
+		final UUID uuid = UUID.fromString(bridgeId);
+		final BridgeHeader header = new BridgeHeader(uuid, "Somebody");
+		header.setId(1L);
+
+		when(headerRepository.findByUuid(bridgeId)).thenReturn(Optional.of(header));
+
+		assertDoesNotThrow(() -> dbService.checkBridgeOwnership(uuid, "Somebody"));
+
+		verify(headerRepository).findByUuid(bridgeId);
+	}
 }

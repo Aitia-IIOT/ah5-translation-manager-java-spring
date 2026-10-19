@@ -2097,7 +2097,7 @@ public class TranslatorBridgeEngineTest {
 	public void testDoNegotiationBridgeIdNull() {
 		final Throwable ex = assertThrows(
 				IllegalArgumentException.class,
-				() -> engine.doNegotiation(null, null, null));
+				() -> engine.doNegotiation(null, null, null, null));
 
 		assertEquals("bridgeId is null", ex.getMessage());
 	}
@@ -2109,7 +2109,7 @@ public class TranslatorBridgeEngineTest {
 
 		final Throwable ex = assertThrows(
 				IllegalArgumentException.class,
-				() -> engine.doNegotiation(bridgeId, null, null));
+				() -> engine.doNegotiation(null, bridgeId, null, null));
 
 		assertEquals("targetInstanceId is empty", ex.getMessage());
 	}
@@ -2121,7 +2121,7 @@ public class TranslatorBridgeEngineTest {
 
 		final Throwable ex = assertThrows(
 				IllegalArgumentException.class,
-				() -> engine.doNegotiation(bridgeId, "", null));
+				() -> engine.doNegotiation(null, bridgeId, "", null));
 
 		assertEquals("targetInstanceId is empty", ex.getMessage());
 	}
@@ -2133,7 +2133,7 @@ public class TranslatorBridgeEngineTest {
 
 		final Throwable ex = assertThrows(
 				IllegalArgumentException.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", null));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", null));
 
 		assertEquals("origin is empty", ex.getMessage());
 	}
@@ -2145,9 +2145,26 @@ public class TranslatorBridgeEngineTest {
 
 		final Throwable ex = assertThrows(
 				IllegalArgumentException.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", ""));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", ""));
 
 		assertEquals("origin is empty", ex.getMessage());
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	@Test
+	public void testDoNegotiationForbidden() {
+		final UUID bridgeId = UUID.randomUUID();
+
+		doThrow(new ForbiddenException("test")).when(dbService).checkBridgeOwnership(bridgeId, "Pretender");
+
+		final ArrowheadException ex = assertThrows(
+				ForbiddenException.class,
+				() -> engine.doNegotiation("Pretender", bridgeId, "TestProvider|testService|1.0.0", "origin"));
+
+		assertEquals("test", ex.getMessage());
+		assertEquals("origin", ex.getOrigin());
+
+		verify(dbService).checkBridgeOwnership(bridgeId, "Pretender");
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -2155,15 +2172,17 @@ public class TranslatorBridgeEngineTest {
 	public void testDoNegotiationInvalidParameterExceptionNotStored() {
 		final UUID bridgeId = UUID.fromString("3b40df99-1468-4d84-bd8e-bfe6d895ebbe");
 
+		doNothing().when(dbService).checkBridgeOwnership(bridgeId, "Requester");
 		when(dbService.selectBridgeFromDiscoveries(bridgeId, "TestProvider|testService|1.0.0")).thenThrow(new InvalidParameterException("test"));
 
 		final ArrowheadException ex = assertThrows(
 				InvalidParameterException.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation("Requester", bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("test", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
 
+		verify(dbService).checkBridgeOwnership(bridgeId, "Requester");
 		verify(dbService).selectBridgeFromDiscoveries(bridgeId, "TestProvider|testService|1.0.0");
 		verify(dbService, never()).storeBridgeProblem(eq(bridgeId), anyString());
 	}
@@ -2177,7 +2196,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				InternalServerError.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("test", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2201,7 +2220,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				InvalidParameterException.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("test", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2227,7 +2246,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				InternalServerError.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("test", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2253,7 +2272,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				ExternalServerError.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("test", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2284,7 +2303,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				InvalidParameterException.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("Bridge is already in an end state", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2352,7 +2371,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				ExternalServerError.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("test", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2438,7 +2457,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				ExternalServerError.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation(null, bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("Interface provider returns with invalid data", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2535,7 +2554,7 @@ public class TranslatorBridgeEngineTest {
 
 		final ArrowheadException ex = assertThrows(
 				InvalidParameterException.class,
-				() -> engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin"));
+				() -> engine.doNegotiation("", bridgeId, "TestProvider|testService|1.0.0", "origin"));
 
 		assertEquals("Bridge is already in an end state", ex.getMessage());
 		assertEquals("origin", ex.getOrigin());
@@ -2629,7 +2648,7 @@ public class TranslatorBridgeEngineTest {
 		when(itDriver.initializeBridge(bridgeId, model2, "token", null, null, null, Map.of("a", "b"))).thenReturn(Pair.of(Optional.of(bridgeResponse), Optional.empty()));
 		when(dbService.bridgeInitialized(header)).thenReturn(false);
 
-		final TranslationNegotiationResponseDTO result = engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin");
+		final TranslationNegotiationResponseDTO result = engine.doNegotiation("", bridgeId, "TestProvider|testService|1.0.0", "origin");
 
 		assertNotNull(result);
 		assertEquals(bridgeId.toString(), result.bridgeId());
@@ -2718,7 +2737,7 @@ public class TranslatorBridgeEngineTest {
 		when(itDriver.initializeBridge(bridgeId, model2, null, null, null, null, Map.of("a", "b"))).thenReturn(Pair.of(Optional.of(bridgeResponse), Optional.empty()));
 		when(dbService.bridgeInitialized(header)).thenReturn(false);
 
-		final TranslationNegotiationResponseDTO result = engine.doNegotiation(bridgeId, "TestProvider|testService|1.0.0", "origin");
+		final TranslationNegotiationResponseDTO result = engine.doNegotiation("", bridgeId, "TestProvider|testService|1.0.0", "origin");
 
 		assertNotNull(result);
 		assertEquals(bridgeId.toString(), result.bridgeId());
